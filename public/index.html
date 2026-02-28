@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>银河战力党 Galaxy Power Party</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header>
+        <h1>银河战力党</h1>
+        <p>Galaxy Power Party v1.0</p>
+      </header>
+
+      <section id="connectionPanel" class="panel">
+        <h2>连接</h2>
+        <p id="myId">玩家ID：-</p>
+        <label>
+          玩家名
+          <input id="nameInput" maxlength="20" placeholder="输入你的名字" />
+        </label>
+
+        <div class="actions">
+          <button id="createBtn">创建房间</button>
+        </div>
+
+        <label>
+          4位房间号
+          <input id="roomCodeInput" maxlength="4" placeholder="例如 1234" />
+        </label>
+        <div class="actions">
+          <button id="joinBtn">加入房间</button>
+        </div>
+      </section>
+
+      <section id="roomPanel" class="panel hidden">
+        <div class="roomTop">
+          <h2>房间 <span id="roomCode">-</span></h2>
+          <button id="leaveBtn" class="danger">退出房间</button>
+        </div>
+
+        <h3>玩家列表</h3>
+        <ul id="playersList"></ul>
+
+        <div id="lobbyArea">
+          <h3>角色选择</h3>
+          <div id="characterButtons" class="actions"></div>
+          <div id="characterDesc" class="auroraDesc"></div>
+          <h3>装备曜彩骰（仅有A次数的角色可装备）</h3>
+          <div id="auroraButtons" class="actions"></div>
+          <div id="auroraDesc" class="auroraDesc"></div>
+          <p id="lobbyHint">房间达到2人后，若双方已装备曜彩骰则自动开始。</p>
+        </div>
+
+        <div id="gameArea" class="hidden">
+          <h3>战斗信息</h3>
+          <p id="roundInfo"></p>
+          <p id="turnInfo"></p>
+          <div class="battlefield">
+            <section id="enemyZone" class="zone panel subpanel"></section>
+            <section id="selfZone" class="zone panel subpanel"></section>
+          </div>
+        </div>
+
+        <h3>战斗日志</h3>
+        <div id="logBox" class="logBox"></div>
+      </section>
+
+      <section id="msgPanel" class="panel">
+        <h2>消息</h2>
+        <p id="message">等待连接服务器...</p>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
