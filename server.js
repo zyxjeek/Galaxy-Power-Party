@@ -444,10 +444,11 @@ function leaveRoom(ws) {
     const left = room.players.splice(idx, 1)[0];
     if (room.game && room.status === 'in_game' && room.players.length === 1) {
       const remaining = room.players[0];
-      room.status = 'ended';
-      room.game.status = 'ended';
-      room.game.winnerId = remaining.id;
-      room.game.log.push(`${left.name}离开房间，${remaining.name}获胜。`);
+      remaining.ws.playerRoomCode = null;
+      send(remaining.ws, { type: 'left_room', reason: '对手已离开房间，房间已关闭。' });
+      rooms.delete(room.code);
+      ws.playerRoomCode = null;
+      return;
     }
   }
 

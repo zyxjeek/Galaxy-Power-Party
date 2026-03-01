@@ -66,13 +66,19 @@ function getWinnerOverlay() {
     const playAgainBtn = document.createElement('button');
     playAgainBtn.id = 'winnerPlayAgainBtn';
     playAgainBtn.textContent = '再来一局';
-    playAgainBtn.onclick = () => send('play_again');
+    playAgainBtn.onclick = () => {
+      hideWinnerOverlay();
+      send('play_again');
+    };
 
     const disbandBtn = document.createElement('button');
     disbandBtn.id = 'winnerDisbandBtn';
     disbandBtn.className = 'danger';
     disbandBtn.textContent = '解散房间';
-    disbandBtn.onclick = () => send('disband_room');
+    disbandBtn.onclick = () => {
+      hideWinnerOverlay();
+      send('disband_room');
+    };
 
     actions.appendChild(playAgainBtn);
     actions.appendChild(disbandBtn);
@@ -929,7 +935,9 @@ ws.onmessage = (event) => {
     clearSelection();
     state.lastProcessedEffectId = 0;
     render();
-    setMessage(msg.reason || '你已退出房间。');
+    const reason = msg.reason || '你已退出房间。';
+    setMessage(reason);
+    showErrorToast(reason);
     return;
   }
 
