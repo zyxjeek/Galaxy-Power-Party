@@ -432,6 +432,10 @@ button.danger {
   background: rgba(4, 12, 20, 0.86);
 }
 
+.winnerOverlay.hidden {
+  display: none;
+}
+
 .winnerOverlayCard {
   border: 2px solid #a8863a;
   border-radius: 16px;
