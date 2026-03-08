@@ -461,6 +461,127 @@ button.danger {
   justify-content: center;
 }
 
+/* Tooltip */
+.tooltipWrap {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 220px;
+  max-width: 320px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #0a1e30;
+  color: #c8e4f8;
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: normal;
+  z-index: 100;
+  pointer-events: none;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+}
+
+.tooltipWrap:hover .tooltip {
+  display: block;
+}
+
+/* Doc button */
+.docBtn {
+  font-size: 13px;
+  padding: 4px 10px;
+  vertical-align: middle;
+  margin-left: 8px;
+}
+
+/* Doc modal */
+.docOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 14000;
+  display: grid;
+  place-items: center;
+  background: rgba(4, 12, 20, 0.88);
+}
+
+.docOverlay.hidden {
+  display: none;
+}
+
+.docCard {
+  position: relative;
+  max-width: min(90vw, 680px);
+  max-height: 85vh;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(12, 28, 44, 0.97);
+  padding: 20px 24px 24px;
+  color: var(--text);
+}
+
+.docCard h2 {
+  margin-top: 0;
+  color: var(--accent);
+}
+
+.docCard h3 {
+  color: #7cc8f0;
+  margin-top: 18px;
+}
+
+.docCard p, .docCard li {
+  font-size: 14px;
+  line-height: 1.55;
+  color: #c8e4f8;
+}
+
+.docCard ol {
+  padding-left: 20px;
+}
+
+.docCard dt {
+  font-weight: 700;
+  color: #ffd870;
+  margin-top: 8px;
+}
+
+.docCard dd {
+  margin-left: 16px;
+  font-size: 14px;
+  color: #b8d8ef;
+}
+
+.docCard pre {
+  background: #081828;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  color: #b8d8ef;
+  overflow-x: auto;
+}
+
+.docNote {
+  font-size: 13px;
+  color: #7aa8c8;
+}
+
+.docCloseBtn {
+  position: sticky;
+  top: 0;
+  float: right;
+  z-index: 1;
+}
+
 @media (max-width: 600px) {
   .app {
     padding: 12px;
@@ -469,5 +590,15 @@ button.danger {
   .roomTop {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .tooltip {
+    left: 0;
+    transform: none;
+    min-width: 180px;
+  }
+
+  .docCard {
+    padding: 14px 16px 18px;
   }
 }

@@ -13,6 +13,7 @@ const state = {
   animationChain: Promise.resolve(),
 };
 
+const docBtn = document.getElementById('docBtn');
 const myIdEl = document.getElementById('myId');
 const nameInput = document.getElementById('nameInput');
 const roomCodeInput = document.getElementById('roomCodeInput');
@@ -34,9 +35,7 @@ const enemyZone = document.getElementById('enemyZone');
 const selfZone = document.getElementById('selfZone');
 const logBox = document.getElementById('logBox');
 const characterButtons = document.getElementById('characterButtons');
-const characterDesc = document.getElementById('characterDesc');
 const auroraButtons = document.getElementById('auroraButtons');
-const auroraDesc = document.getElementById('auroraDesc');
 const lobbyHint = document.getElementById('lobbyHint');
 
 function send(type, payload = {}) {
@@ -764,21 +763,21 @@ function renderCharacterButtons() {
 
   const list = Object.keys(state.characters).map((id) => state.characters[id]);
   list.forEach((c) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'tooltipWrap';
+
     const btn = document.createElement('button');
     btn.textContent = `${c.name} (${c.shortSpec})`;
     if (me.characterId === c.id) btn.classList.add('selectedAurora');
     btn.onclick = () => send('choose_character', { characterId: c.id });
-    characterButtons.appendChild(btn);
-  });
-}
 
-function renderCharacterDesc() {
-  characterDesc.innerHTML = '';
-  const list = Object.keys(state.characters).map((id) => state.characters[id]);
-  list.forEach((c) => {
-    const p = document.createElement('p');
-    p.textContent = `【${c.name}】${c.hp}生命 | ${c.shortSpec} | 技能：${c.skillText}`;
-    characterDesc.appendChild(p);
+    const tip = document.createElement('div');
+    tip.className = 'tooltip';
+    tip.innerHTML = `<b>${c.name}</b><br>HP ${c.hp} | ${c.shortSpec}<br>技能：${c.skillText}`;
+
+    wrap.appendChild(btn);
+    wrap.appendChild(tip);
+    characterButtons.appendChild(wrap);
   });
 }
 
@@ -797,20 +796,21 @@ function renderAuroraButtons() {
   }
 
   state.auroraDice.forEach((a) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'tooltipWrap';
+
     const btn = document.createElement('button');
     btn.textContent = a.name;
     if (me.auroraDiceId === a.id) btn.classList.add('selectedAurora');
     btn.onclick = () => send('choose_aurora_die', { auroraDiceId: a.id });
-    auroraButtons.appendChild(btn);
-  });
-}
 
-function renderAuroraDesc() {
-  auroraDesc.innerHTML = '';
-  state.auroraDice.forEach((a) => {
-    const p = document.createElement('p');
-    p.textContent = `【${a.name}】骰面: ${a.facesText} | ${a.effectText} | 条件: ${a.conditionText}`;
-    auroraDesc.appendChild(p);
+    const tip = document.createElement('div');
+    tip.className = 'tooltip';
+    tip.innerHTML = `<b>${a.name}</b><br>骰面：${a.facesText}<br>${a.effectText}<br>条件：${a.conditionText}`;
+
+    wrap.appendChild(btn);
+    wrap.appendChild(tip);
+    auroraButtons.appendChild(wrap);
   });
 }
 
@@ -873,9 +873,7 @@ function render() {
     gameArea.classList.add('hidden');
 
     renderCharacterButtons();
-    renderCharacterDesc();
     renderAuroraButtons();
-    renderAuroraDesc();
 
     lobbyHint.textContent = state.room.waitingReason || '房间达到2人后自动开始。';
     logBox.textContent = '等待玩家加入并完成开局配置...';
@@ -965,6 +963,88 @@ function connect() {
     }
   };
 }
+
+function buildDocContent() {
+  const chars = Object.keys(state.characters).map((id) => state.characters[id]);
+  const charSection = chars.length
+    ? chars.map((c) => `<b>${c.name}</b> — HP ${c.hp} | ${c.shortSpec}\n技能：${c.skillText}`).join('\n\n')
+    : '（加载中...）';
+
+  const auroraSection = state.auroraDice.length
+    ? state.auroraDice.map((a) => `<b>${a.name}</b> — 骰面：${a.facesText}\n${a.effectText}\n条件：${a.conditionText}`).join('\n\n')
+    : '（加载中...）';
+
+  return `<h2>游戏文档</h2>
+
+<h3>基本规则</h3>
+<p>银河战力党是一款 2 人回合制骰子对战游戏。双方各选一个角色和一颗曜彩骰，轮流进行攻防回合。</p>
+<p><b>回合流程：</b></p>
+<ol>
+<li><b>攻击投掷</b> — 攻击方投掷所有骰子</li>
+<li><b>攻击选择</b> — 攻击方可重投任意骰子（有次数限制），也可使用曜彩骰，最后选择指定数量的骰子确认攻击值</li>
+<li><b>防守投掷</b> — 防守方投掷所有骰子</li>
+<li><b>防守选择</b> — 防守方可使用曜彩骰，选择指定数量的骰子确认防守值</li>
+<li><b>结算</b> — 攻击值 - 防守值 = 伤害（最低为 0），之后攻防互换进入下一回合</li>
+</ol>
+<p>某方 HP 降至 0 时游戏结束。</p>
+
+<h3>名词解释</h3>
+<dl>
+<dt>攻击等级 / 防守等级</dt>
+<dd>攻击/防守时需要选择的骰子数量。例如攻击等级 3 表示确认攻击时必须选 3 枚骰子。</dd>
+<dt>曜彩骰</dt>
+<dd>特殊的第 6 颗骰子，使用后加入骰池一起投掷。每局有使用次数限制。</dd>
+<dt>A 效果</dt>
+<dd>曜彩骰带有"A"标记的面。当带 A 的面被选中确认时，触发该曜彩骰的特殊效果。</dd>
+<dt>洞穿</dt>
+<dd>无视防守值和力场，直接造成攻击值等量的伤害。</dd>
+<dt>力场</dt>
+<dd>本回合不受常规攻击伤害（洞穿可穿透力场）。</dd>
+<dt>瞬伤</dt>
+<dd>立即造成的伤害，不经过攻防结算。</dd>
+<dt>跃升</dt>
+<dd>将所选骰子中最小点数变为该骰子的最大面值。</dd>
+</dl>
+
+<h3>角色一览</h3>
+<p class="docNote">格式：角色名 — HP | 骰池 A次数 攻等+防等</p>
+<pre>${charSection}</pre>
+
+<h3>曜彩骰一览</h3>
+<pre>${auroraSection}</pre>`;
+}
+
+function showDocModal() {
+  let overlay = document.getElementById('docOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'docOverlay';
+    overlay.className = 'docOverlay';
+
+    const card = document.createElement('div');
+    card.className = 'docCard';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'docCloseBtn';
+    closeBtn.textContent = '关闭';
+    closeBtn.onclick = () => overlay.classList.add('hidden');
+
+    const content = document.createElement('div');
+    content.id = 'docContent';
+    content.className = 'docContent';
+
+    card.appendChild(closeBtn);
+    card.appendChild(content);
+    overlay.appendChild(card);
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.classList.add('hidden'); };
+    document.body.appendChild(overlay);
+  }
+
+  document.getElementById('docContent').innerHTML = buildDocContent();
+  overlay.classList.remove('hidden');
+}
+
+docBtn.onclick = () => showDocModal();
 
 connect();
 render();
