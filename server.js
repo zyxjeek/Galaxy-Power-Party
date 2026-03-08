@@ -1,4 +1,5 @@
 const express = require('express');
+const compression = require('compression');
 const http = require('http');
 const path = require('path');
 const WebSocket = require('ws');
@@ -6,10 +7,22 @@ const WebSocket = require('ws');
 const PORT = process.env.PORT || 3000;
 
 const app = express();
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(compression());
+app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1h', etag: true }));
 
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
+
+// WebSocket heartbeat to keep connections alive on Render
+const HEARTBEAT_INTERVAL = 30000;
+const heartbeatTimer = setInterval(() => {
+  wss.clients.forEach((ws) => {
+    if (ws.isAlive === false) return ws.terminate();
+    ws.isAlive = false;
+    ws.ping();
+  });
+}, HEARTBEAT_INTERVAL);
+wss.on('close', () => clearInterval(heartbeatTimer));
 
 const rooms = new Map();
 let nextPlayerId = 1;
@@ -1159,6 +1172,9 @@ function handleDisbandRoom(ws) {
 }
 
 wss.on('connection', (ws) => {
+  ws.isAlive = true;
+  ws.on('pong', () => { ws.isAlive = true; });
+
   ws.playerId = `P${nextPlayerId++}`;
   ws.playerRoomCode = null;
 
