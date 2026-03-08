@@ -11,7 +11,13 @@ app.use(compression());
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1h', etag: true }));
 
 const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocket.Server({
+  server,
+  perMessageDeflate: {
+    zlibDeflateOptions: { level: 1 },
+    threshold: 128,
+  },
+});
 
 // WebSocket heartbeat to keep connections alive on Render
 const HEARTBEAT_INTERVAL = 30000;

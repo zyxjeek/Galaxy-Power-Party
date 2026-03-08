@@ -11,6 +11,7 @@ const state = {
   auroraDice: [],
   lastProcessedEffectId: 0,
   animationChain: Promise.resolve(),
+  pendingAction: null,
 };
 
 const docBtn = document.getElementById('docBtn');
@@ -42,6 +43,12 @@ function send(type, payload = {}) {
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify({ type, ...payload }));
   }
+}
+
+function sendWithFeedback(type, label, payload = {}) {
+  state.pendingAction = label;
+  render();
+  send(type, payload);
 }
 
 function setMessage(msg) {
@@ -390,7 +397,7 @@ function toggleDie(index, maxSelectable) {
   clearTimeout(liveSelectionTimeout);
   liveSelectionTimeout = setTimeout(() => {
     send('update_live_selection', { indices: [...state.selectedDice] });
-  }, 150);
+  }, 80);
   render();
 }
 
@@ -515,10 +522,11 @@ function renderSelfActions(game, wrapper) {
   if (game.phase === 'attack_roll') {
     if (game.attackerId === me) {
       const btn = document.createElement('button');
-      btn.textContent = '投掷攻击骰';
+      btn.textContent = state.pendingAction === 'roll_attack' ? '投掷中...' : '投掷攻击骰';
+      btn.disabled = !!state.pendingAction;
       btn.onclick = () => {
         clearSelection();
-        send('roll_attack');
+        sendWithFeedback('roll_attack', 'roll_attack');
       };
       wrapper.appendChild(btn);
     } else {
@@ -548,29 +556,31 @@ function renderSelfActions(game, wrapper) {
 
     if (!meChar || meChar.auroraUses > 0) {
       const auroraBtn = document.createElement('button');
-      auroraBtn.textContent = `使用曜彩骰（剩余${myUses}）`;
-      auroraBtn.disabled = usedThisRound || myUses <= 0;
+      auroraBtn.textContent = state.pendingAction === 'use_aurora_atk' ? '使用中...' : `使用曜彩骰（剩余${myUses}）`;
+      auroraBtn.disabled = usedThisRound || myUses <= 0 || !!state.pendingAction;
       auroraBtn.onclick = () => {
         clearSelection();
-        send('use_aurora_die');
+        sendWithFeedback('use_aurora_die', 'use_aurora_atk');
       };
       row.appendChild(auroraBtn);
     }
 
     const rerollBtn = document.createElement('button');
-    rerollBtn.textContent = '重投已选骰子';
-    rerollBtn.disabled = game.rerollsLeft <= 0;
+    rerollBtn.textContent = state.pendingAction === 'reroll_attack' ? '重投中...' : '重投已选骰子';
+    rerollBtn.disabled = game.rerollsLeft <= 0 || !!state.pendingAction;
     rerollBtn.onclick = () => {
-      send('reroll_attack', { indices: [...state.selectedDice] });
+      const indices = [...state.selectedDice];
       clearSelection();
+      sendWithFeedback('reroll_attack', 'reroll_attack', { indices });
     };
 
     const confirmBtn = document.createElement('button');
-    confirmBtn.textContent = `确认攻击（选${needCount}枚）`;
-    confirmBtn.disabled = state.selectedDice.size !== needCount;
+    confirmBtn.textContent = state.pendingAction === 'confirm_attack' ? '确认中...' : `确认攻击（选${needCount}枚）`;
+    confirmBtn.disabled = state.selectedDice.size !== needCount || !!state.pendingAction;
     confirmBtn.onclick = () => {
-      send('confirm_attack_selection', { indices: [...state.selectedDice] });
+      const indices = [...state.selectedDice];
       clearSelection();
+      sendWithFeedback('confirm_attack_selection', 'confirm_attack', { indices });
     };
 
     row.appendChild(rerollBtn);
@@ -583,10 +593,11 @@ function renderSelfActions(game, wrapper) {
   if (game.phase === 'defense_roll') {
     if (game.defenderId === me) {
       const btn = document.createElement('button');
-      btn.textContent = '投掷防守骰';
+      btn.textContent = state.pendingAction === 'roll_defense' ? '投掷中...' : '投掷防守骰';
+      btn.disabled = !!state.pendingAction;
       btn.onclick = () => {
         clearSelection();
-        send('roll_defense');
+        sendWithFeedback('roll_defense', 'roll_defense');
       };
       wrapper.appendChild(btn);
     } else {
@@ -616,21 +627,22 @@ function renderSelfActions(game, wrapper) {
 
     if (!meChar || meChar.auroraUses > 0) {
       const auroraBtn = document.createElement('button');
-      auroraBtn.textContent = `使用曜彩骰（剩余${myUses}）`;
-      auroraBtn.disabled = usedThisRound || myUses <= 0;
+      auroraBtn.textContent = state.pendingAction === 'use_aurora_def' ? '使用中...' : `使用曜彩骰（剩余${myUses}）`;
+      auroraBtn.disabled = usedThisRound || myUses <= 0 || !!state.pendingAction;
       auroraBtn.onclick = () => {
         clearSelection();
-        send('use_aurora_die');
+        sendWithFeedback('use_aurora_die', 'use_aurora_def');
       };
       row.appendChild(auroraBtn);
     }
 
     const confirmBtn = document.createElement('button');
-    confirmBtn.textContent = `确认防守（选${needCount}枚）`;
-    confirmBtn.disabled = state.selectedDice.size !== needCount;
+    confirmBtn.textContent = state.pendingAction === 'confirm_defense' ? '确认中...' : `确认防守（选${needCount}枚）`;
+    confirmBtn.disabled = state.selectedDice.size !== needCount || !!state.pendingAction;
     confirmBtn.onclick = () => {
-      send('confirm_defense_selection', { indices: [...state.selectedDice] });
+      const indices = [...state.selectedDice];
       clearSelection();
+      sendWithFeedback('confirm_defense_selection', 'confirm_defense', { indices });
     };
 
     row.appendChild(confirmBtn);
@@ -926,6 +938,7 @@ function connect() {
     }
 
     if (msg.type === 'room_state') {
+      state.pendingAction = null;
       const prevRoomCode = state.room && state.room.code;
       const prevHadGame = !!(state.room && state.room.game);
 
@@ -947,6 +960,7 @@ function connect() {
     }
 
     if (msg.type === 'left_room') {
+      state.pendingAction = null;
       state.room = null;
       clearSelection();
       state.lastProcessedEffectId = 0;
@@ -958,8 +972,10 @@ function connect() {
     }
 
     if (msg.type === 'error') {
+      state.pendingAction = null;
       setMessage(`错误：${msg.message}`);
       showErrorToast(msg.message);
+      render();
     }
   };
 }
