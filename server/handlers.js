@@ -103,6 +103,30 @@ function startGameIfReady(room) {
       [p1.id]: 0,
       [p2.id]: 0,
     },
+    selectedOneCount: {
+      [p1.id]: 0,
+      [p2.id]: 0,
+    },
+    cumulativeDamageTaken: {
+      [p1.id]: 0,
+      [p2.id]: 0,
+    },
+    overload: {
+      [p1.id]: 0,
+      [p2.id]: 0,
+    },
+    unyielding: {
+      [p1.id]: false,
+      [p2.id]: false,
+    },
+    desperateBonus: {
+      [p1.id]: 0,
+      [p2.id]: 0,
+    },
+    counterActive: {
+      [p1.id]: false,
+      [p2.id]: false,
+    },
     auroraAEffectCount: {
       [p1.id]: 0,
       [p2.id]: 0,
@@ -313,6 +337,12 @@ function handleRollAttack(ws) {
   game.whiteeGuardActive[defender.id] = false;
   game.hackActive[attacker.id] = false;
   game.hackActive[defender.id] = false;
+  game.unyielding[attacker.id] = false;
+  game.unyielding[defender.id] = false;
+  game.desperateBonus[attacker.id] = 0;
+  game.desperateBonus[defender.id] = 0;
+  game.counterActive[attacker.id] = false;
+  game.counterActive[defender.id] = false;
   game.yaoguangRerollsUsed[attacker.id] = 0;
 
   game.phase = 'attack_reroll_or_select';
@@ -416,8 +446,15 @@ function handleConfirmAttack(ws, msg) {
     return send(ws, { type: 'error', message: `必须选择${needCount}枚不同的骰子。` });
   }
 
+  // Destiny (命定) validation: aurora die must be selected
+  const destinyIdx = game.attackDice.findIndex((d) => d.isAurora && d.auroraId === 'destiny');
+  if (destinyIdx !== -1 && !indices.includes(destinyIdx)) {
+    return send(ws, { type: 'error', message: '命定：曜彩骰必须被选中。' });
+  }
+
   const selectedDice = indices.map((idx) => game.attackDice[idx]);
   game.selectedFourCount[attacker.id] += countSelectedValue(selectedDice, 4);
+  game.selectedOneCount[attacker.id] += countSelectedValue(selectedDice, 1);
 
   applyAscension(room, game, attacker, selectedDice);
   applyCharacterAttackSkill(room, game, attacker, selectedDice);
@@ -430,6 +467,18 @@ function handleConfirmAttack(ws, msg) {
   if (attacker.characterId === 'fengjin' && game.power[attacker.id] > 0) {
     game.attackValue += game.power[attacker.id];
     game.log.push(`${attacker.name}触发【力量】加成+${game.power[attacker.id]}，攻击值${game.attackValue}。`);
+  }
+
+  // Overload (超载) attack bonus
+  if (game.overload[attacker.id] > 0) {
+    game.attackValue += game.overload[attacker.id];
+    game.log.push(`${attacker.name}触发【超载】攻击加成+${game.overload[attacker.id]}，攻击值${game.attackValue}。`);
+  }
+
+  // Desperate (背水) bonus
+  if (game.desperateBonus[attacker.id] > 0) {
+    game.attackValue += game.desperateBonus[attacker.id];
+    game.log.push(`${attacker.name}触发【背水】加成+${game.desperateBonus[attacker.id]}，攻击值${game.attackValue}。`);
   }
 
   applyAuroraAEffectOnAttack(room, game, attacker, selectedDice);
@@ -575,6 +624,12 @@ function goNextRound(room, game, newAttacker, newDefender) {
   game.whiteeGuardActive[newDefender.id] = false;
   game.hackActive[newAttacker.id] = false;
   game.hackActive[newDefender.id] = false;
+  game.unyielding[newAttacker.id] = false;
+  game.unyielding[newDefender.id] = false;
+  game.desperateBonus[newAttacker.id] = 0;
+  game.desperateBonus[newDefender.id] = 0;
+  game.counterActive[newAttacker.id] = false;
+  game.counterActive[newDefender.id] = false;
   game.yaoguangRerollsUsed[newAttacker.id] = 0;
   game.yaoguangRerollsUsed[newDefender.id] = 0;
   game.log.push(`第${game.round}回合开始，攻击方：${newAttacker.name}`);
@@ -597,8 +652,15 @@ function handleConfirmDefense(ws, msg) {
     return send(ws, { type: 'error', message: `必须选择${needCount}枚不同的骰子。` });
   }
 
+  // Destiny (命定) validation: aurora die must be selected
+  const destinyIdx = game.defenseDice.findIndex((d) => d.isAurora && d.auroraId === 'destiny');
+  if (destinyIdx !== -1 && !indices.includes(destinyIdx)) {
+    return send(ws, { type: 'error', message: '命定：曜彩骰必须被选中。' });
+  }
+
   const selectedDice = indices.map((idx) => game.defenseDice[idx]);
   game.selectedFourCount[defender.id] += countSelectedValue(selectedDice, 4);
+  game.selectedOneCount[defender.id] += countSelectedValue(selectedDice, 1);
 
   applyAscension(room, game, defender, selectedDice);
 
@@ -658,6 +720,23 @@ function handleConfirmDefense(ws, msg) {
 
   applyAuroraAEffectOnDefense(room, game, defender, selectedDice);
   applyHackEffects(game, attacker, defender);
+
+  // Overload (超载) defense self-damage
+  if (game.overload[defender.id] > 0) {
+    const overloadDmg = Math.ceil(game.overload[defender.id] * 0.5);
+    const before = game.hp[defender.id];
+    game.hp[defender.id] -= overloadDmg;
+    pushEffectEvent(game, {
+      type: 'instant_damage',
+      sourcePlayerId: defender.id,
+      targetPlayerId: defender.id,
+      amount: overloadDmg,
+      hpBefore: before,
+      hpAfter: game.hp[defender.id],
+    });
+    game.log.push(`${defender.name}触发【超载】防御自伤${overloadDmg}点。`);
+  }
+
   applyThornsDamage(game, room);
 
   // Damage calculation
@@ -671,7 +750,7 @@ function handleConfirmDefense(ws, msg) {
   });
 
   let cappedHits = hitsAfterForce.slice();
-  if (game.whiteeGuardActive[defender.id]) {
+  if (game.whiteeGuardActive[defender.id] || game.unyielding[defender.id]) {
     const total = cappedHits.reduce((a, b) => a + b, 0);
     const maxLoss = Math.max(0, hpBeforeDef - 1);
     if (total > maxLoss) {
@@ -681,6 +760,9 @@ function handleConfirmDefense(ws, msg) {
         remain -= part;
         return part;
       });
+      if (game.unyielding[defender.id]) {
+        game.log.push(`${defender.name}的【不屈】生效，生命值保留至1。`);
+      }
     }
   }
 
@@ -710,6 +792,11 @@ function handleConfirmDefense(ws, msg) {
     game.log.push(`${attacker.name}攻击${defender.name}，攻击值${game.attackValue}，防守值${game.defenseValue}，造成${totalDamage}点伤害。`);
   }
 
+  // Track cumulative damage taken
+  if (totalDamage > 0) {
+    game.cumulativeDamageTaken[defender.id] += totalDamage;
+  }
+
   // Xiadie passives
   applyXiadieDefendPassives(room, game, defender, attacker, cappedHits);
 
@@ -737,6 +824,25 @@ function handleConfirmDefense(ws, msg) {
   if (defender.characterId === 'danheng' && game.danhengCounterReady[defender.id]) {
     game.defenseLevel[defender.id] -= 3;
     game.danhengCounterReady[defender.id] = false;
+    if (!game.attackPierce && game.defenseValue > game.attackValue) {
+      const counterDmg = game.defenseValue - game.attackValue;
+      const before = game.hp[attacker.id];
+      game.hp[attacker.id] -= counterDmg;
+      pushEffectEvent(game, {
+        type: 'instant_damage',
+        sourcePlayerId: defender.id,
+        targetPlayerId: attacker.id,
+        amount: counterDmg,
+        hpBefore: before,
+        hpAfter: game.hp[attacker.id],
+      });
+      game.log.push(`${defender.name}触发【反击】，对${attacker.name}造成${counterDmg}点反击伤害！`);
+    }
+  }
+
+  // Cactus counter resolution
+  if (game.counterActive[defender.id]) {
+    game.counterActive[defender.id] = false;
     if (!game.attackPierce && game.defenseValue > game.attackValue) {
       const counterDmg = game.defenseValue - game.attackValue;
       const before = game.hp[attacker.id];
