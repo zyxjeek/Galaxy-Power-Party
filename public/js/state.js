@@ -19,6 +19,7 @@ const dom = {
   nameInput: document.getElementById('nameInput'),
   roomCodeInput: document.getElementById('roomCodeInput'),
   createBtn: document.getElementById('createBtn'),
+  aiBtn: document.getElementById('aiBtn'),
   joinBtn: document.getElementById('joinBtn'),
   leaveBtn: document.getElementById('leaveBtn'),
   messageEl: document.getElementById('message'),

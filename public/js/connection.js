@@ -5,6 +5,10 @@
     send('create_room', { name: GPP.getMyName() });
   };
 
+  dom.aiBtn.onclick = () => {
+    send('create_ai_room', { name: GPP.getMyName() });
+  };
+
   dom.joinBtn.onclick = () => {
     send('join_room', { name: GPP.getMyName(), code: dom.roomCodeInput.value.trim() });
   };

@@ -65,6 +65,9 @@ wss.on('connection', (ws) => {
       case 'create_room':
         handlers.handleCreateRoom(ws, msg);
         break;
+      case 'create_ai_room':
+        handlers.handleCreateAIRoom(ws, msg);
+        break;
       case 'join_room':
         handlers.handleJoinRoom(ws, msg);
         break;

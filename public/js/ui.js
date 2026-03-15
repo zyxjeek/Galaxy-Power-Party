@@ -233,6 +233,69 @@
     overlay.classList.remove('hidden');
   }
 
+  // --- Glossary tooltip system ---
+
+  const GLOSSARY = {
+    '攻击等级': '攻击时需要选择的骰子数量。例如攻击等级3表示确认攻击时必须选3枚骰子。',
+    '防守等级': '防守时需要选择的骰子数量。例如防守等级2表示确认防守时必须选2枚骰子。',
+    '曜彩骰': '特殊的第6颗骰子，使用后加入骰池一起投掷。每局有使用次数限制。',
+    'A触发': '曜彩骰A效果的累计触发次数。曜彩骰带有"A"标记的面被选中时触发特殊效果。',
+    '力场': '本回合不受常规攻击伤害（洞穿可穿透力场）。',
+    '洞穿': '无视防守值和力场，直接造成攻击值等量的伤害。',
+    '瞬伤': '立即造成的伤害，不经过攻防结算。',
+    '跃升': '将所选骰子中最小点数变为该骰子的最大面值。',
+    '连击': '本轮次额外进行一次基于当前攻击值的攻击。',
+    '中毒': '回合结算后受到对应层数的伤害，随后层数-1。',
+    '韧性': '防御时提供对应层数的防守值加成。满7层时对对手瞬伤7点并移除7层。',
+    '反击准备': '下次防御时获得反击效果（防守值>攻击值时对攻击方造成差值伤害）。',
+    '反击': '防守值大于攻击值时，对攻击方造成差值伤害。',
+    '骇入': '结算前，将对手已选择骰子中点数最大的一颗变为2点（不作用于曜彩骰）。',
+    '荆棘': '回合结算前受到对应层数的自伤，结算后清除荆棘。',
+    '力量': '攻击时提供对应层数的攻击值加成。',
+    '命定': '持有此效果的骰子投出后必须被选中使用，不可跳过。',
+    '超载': '攻击时附加与层数相同的攻击值加成；防御时对自己造成层数50%的伤害（向上取整）。',
+    '不屈': '本回合HP不会降至0以下，始终保留至少1点生命值。',
+    '背水': '将自身HP降为1，获得等于降低值的攻击加成。',
+  };
+
+  // Sorted by length desc to avoid partial matches (e.g. "反击准备" before "反击")
+  const _glossTerms = Object.keys(GLOSSARY).sort((a, b) => b.length - a.length);
+  const _glossRegex = new RegExp('(' + _glossTerms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')', 'g');
+
+  function escapeHtml(text) {
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function wrapGlossaryTerms(text) {
+    const escaped = escapeHtml(text);
+    return escaped.replace(_glossRegex, (match) => {
+      const desc = escapeHtml(GLOSSARY[match]);
+      return `<span class="glossTip">${match}<span class="glossTipText">${desc}</span></span>`;
+    });
+  }
+
+  function charTooltipHtml(characterId, characterName) {
+    const c = state.characters[characterId];
+    if (!c) return escapeHtml(characterName || '');
+    return '<span class="glossTip">' + escapeHtml(c.name)
+      + '<span class="glossTipText">'
+      + escapeHtml('HP ' + c.hp + ' | ' + c.shortSpec)
+      + '<br>' + escapeHtml('技能：' + c.skillText)
+      + '</span></span>';
+  }
+
+  function auroraTooltipHtml(auroraDiceId, auroraDiceName) {
+    if (!auroraDiceId || !auroraDiceName) return escapeHtml(auroraDiceName || '无');
+    const a = state.auroraDice.find((d) => d.id === auroraDiceId);
+    if (!a) return escapeHtml(auroraDiceName);
+    return '<span class="glossTip">' + escapeHtml(a.name)
+      + '<span class="glossTipText">'
+      + escapeHtml('骰面：' + a.facesText)
+      + '<br>' + escapeHtml(a.effectText)
+      + '<br>' + escapeHtml('条件：' + a.conditionText)
+      + '</span></span>';
+  }
+
   Object.assign(GPP, {
     getMyName,
     isMe,
@@ -245,5 +308,8 @@
     hideWinnerOverlay,
     showErrorToast,
     showDocModal,
+    wrapGlossaryTerms,
+    charTooltipHtml,
+    auroraTooltipHtml,
   });
 })();

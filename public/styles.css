@@ -270,6 +270,37 @@ button.danger {
   margin: 6px 0;
 }
 
+.glossTip {
+  position: relative;
+  border-bottom: 1px dotted #7cc8f0;
+  cursor: help;
+}
+
+.glossTipText {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 140px;
+  max-width: 280px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #0a1e30;
+  color: #c8e4f8;
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: normal;
+  z-index: 100;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.glossTip:hover .glossTipText {
+  display: block;
+}
+
 .diceCenter {
   display: flex;
   justify-content: center;

@@ -186,7 +186,10 @@
 
     const meta = document.createElement('p');
     meta.className = 'metaLine';
-    let metaText = `角色：${player.characterName} | 曜彩骰：${player.auroraDiceName || '无'} | 曜彩剩余：${uses} | 选中4累计：${four} | A触发：${aCount} | 力场：${shield}`;
+
+    const charHtml = GPP.charTooltipHtml(player.characterId, player.characterName);
+    const auroraHtml = GPP.auroraTooltipHtml(player.auroraDiceId, player.auroraDiceName);
+    const restText = `曜彩剩余：${uses} | 选中4累计：${four} | A触发：${aCount} | 力场：${shield}`;
 
     const extras = [];
     const poison = game.poison && game.poison[player.id];
@@ -202,9 +205,9 @@
     const xilianCum = game.xilianCumulative && game.xilianCumulative[player.id];
     if (xilianCum > 0) extras.push(`累计${xilianCum}`);
     if (game.xilianAscensionActive && game.xilianAscensionActive[player.id]) extras.push('跃升');
-    if (extras.length) metaText += ` | ${extras.join(' ')}`;
+    const extrasHtml = extras.length ? ' | ' + GPP.wrapGlossaryTerms(extras.join(' ')) : '';
 
-    meta.textContent = metaText;
+    meta.innerHTML = `角色：${charHtml} | 曜彩骰：${auroraHtml} | ${GPP.wrapGlossaryTerms(restText)}${extrasHtml}`;
     zoneEl.appendChild(meta);
 
     const displayed = getDisplayedDiceForPlayer(game, player.id);

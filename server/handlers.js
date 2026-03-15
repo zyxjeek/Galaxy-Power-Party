@@ -17,7 +17,7 @@ const {
 } = require('./dice');
 const {
   send,
-  broadcastRoom,
+  broadcastRoom: _broadcastRoom,
   newRoomCode,
   getPlayerRoom,
   getPlayerById,
@@ -37,8 +37,20 @@ const {
   applyXiadieDefendPassives,
   calcHits,
 } = require('./skills');
+const {
+  createAIPlayer,
+  reRandomizeAIPlayer,
+  scheduleAIAction,
+} = require('./ai');
 
 module.exports = function createHandlers(rooms) {
+
+let _handlerRefs = null;
+
+function broadcastRoom(room) {
+  _broadcastRoom(room);
+  if (_handlerRefs) scheduleAIAction(room, rooms, _handlerRefs);
+}
 
 function startGameIfReady(room) {
   if (room.status === 'in_game') return;
@@ -210,6 +222,12 @@ function leaveRoom(ws) {
   ws.playerRoomCode = null;
 
   if (room.players.length === 0) {
+    rooms.delete(room.code);
+    return;
+  }
+
+  // Clean up rooms with only AI players remaining
+  if (room.players.every((p) => p.ws && p.ws.isAI)) {
     rooms.delete(room.code);
     return;
   }
@@ -941,6 +959,24 @@ function handlePlayAgain(ws) {
   room.status = 'lobby';
   room.game = null;
   room.waitingReason = '等待双方确认开局配置。';
+
+  // Re-randomize AI player loadout for variety
+  const hasAI = room.players.some((p) => p.ws && p.ws.isAI);
+  for (const p of room.players) {
+    if (p.ws && p.ws.isAI) {
+      reRandomizeAIPlayer(p);
+    }
+  }
+
+  // For AI rooms, reset human's aurora so they re-select in lobby
+  if (hasAI) {
+    for (const p of room.players) {
+      if (!(p.ws && p.ws.isAI)) {
+        p.auroraDiceId = null;
+      }
+    }
+  }
+
   startGameIfReady(room);
   broadcastRoom(room);
 }
@@ -958,6 +994,40 @@ function handleDisbandRoom(ws) {
   }
 }
 
+function handleCreateAIRoom(ws, msg) {
+  if (!msg.name || typeof msg.name !== 'string') return send(ws, { type: 'error', message: '请输入玩家名称。' });
+  if (getPlayerRoom(ws, rooms)) leaveRoom(ws);
+
+  const code = newRoomCode(rooms);
+  const room = {
+    code,
+    status: 'lobby',
+    waitingReason: '',
+    players: [],
+    game: null,
+  };
+
+  rooms.set(code, room);
+
+  room.players.push(createNewRoomPlayer(ws, msg.name.trim().slice(0, 20) || `玩家${ws.playerId}`));
+  ws.playerRoomCode = code;
+
+  const aiPlayer = createAIPlayer(code);
+  room.players.push(aiPlayer);
+
+  startGameIfReady(room);
+  broadcastRoom(room);
+}
+
+_handlerRefs = {
+  handleRollAttack,
+  handleUseAurora,
+  handleRerollAttack,
+  handleConfirmAttack,
+  handleRollDefense,
+  handleConfirmDefense,
+};
+
 return {
   leaveRoom,
   handleCreateRoom,
@@ -973,6 +1043,7 @@ return {
   handleUpdateLiveSelection,
   handlePlayAgain,
   handleDisbandRoom,
+  handleCreateAIRoom,
 };
 
 }; // end createHandlers

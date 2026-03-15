@@ -11,6 +11,7 @@
 - `server/rooms.js` — Room management: `send()`, `sanitizeRoom()`, `broadcastRoom()`, player/room lookups, `pushEffectEvent()`
 - `server/skills.js` — Character skills: aurora effects, ascension, hack, thorns, poison, damage checks
 - `server/handlers.js` — All WebSocket message handlers (factory function receiving `rooms` Map)
+- `server/ai.js` — AI opponent: player creation, decision-making (attack/defense/reroll/aurora), game scheduling
 
 ### Client
 - `public/index.html` — Single-page HTML shell
@@ -31,13 +32,22 @@
 - **Server-authoritative**: All game state lives in `room.game` on the server. Client renders state received via WebSocket.
 - **Server modules**: Use Node.js `require()`. `handlers.js` exports a factory `createHandlers(rooms)` that closes over the shared `rooms` Map.
 - **Client modules**: Share state via `window.GPP` namespace. Loaded in dependency order via `<script>` tags. Functions from later scripts are accessed lazily through `GPP.*`.
-- **WebSocket messages**: JSON `{type, ...payload}`. Key types: `create_room`, `join_room`, `choose_character`, `choose_aurora_die`, `roll_attack`, `reroll_attack`, `confirm_attack_selection`, `roll_defense`, `confirm_defense_selection`, `use_aurora_die`, `update_live_selection`, `play_again`, `disband_room`.
+- **WebSocket messages**: JSON `{type, ...payload}`. Key types: `create_room`, `create_ai_room`, `join_room`, `choose_character`, `choose_aurora_die`, `roll_attack`, `reroll_attack`, `confirm_attack_selection`, `roll_defense`, `confirm_defense_selection`, `use_aurora_die`, `update_live_selection`, `play_again`, `disband_room`.
 - **Effect events**: `pushEffectEvent()` queues animation events (`damage_resolution`, `instant_damage`, `heal`) into a circular buffer. Client processes them sequentially via `queueEffectAnimation()`.
 - **sanitizeRoom()**: Filters game state before sending to clients (hides opponent loadout in lobby).
 
 ## Game Flow
-1. **Lobby**: Both players pick character + aurora die → auto-start
+1. **Lobby**: Both players pick character + aurora die → auto-start (PvP or vs AI)
 2. **Attack roll** → **Attack reroll/select** (choose N dice per attackLevel) → **Defense roll** → **Defense select** (choose N dice per defenseLevel) → **Damage resolution** → swap roles, next round
+
+## AI Opponent
+- **Entry**: `create_ai_room` message creates a room with a virtual AI player (fake ws, `playerId: 'AI'`)
+- **Character/Aurora**: Random selection on room creation and on each "play again"
+- **Decision scheduling**: `broadcastRoom()` wrapper in handlers triggers `scheduleAIAction()` after each state broadcast. AI actions execute via `setTimeout` with 600-1500ms delay
+- **Attack strategy**: Enumerate all C(n,k) dice combinations, score each based on sum + character skill synergy bonuses (e.g., +50 for Huangquan pierce, +15 for Liuying double strike)
+- **Reroll strategy**: Reroll dice below expected value; character-specific (Huangquan rerolls non-4s, Zhigengniao rerolls odd values)
+- **Aurora usage**: Attack — generally use if available; Defense — conditional on attack value threshold
+- **Cleanup**: Rooms with only AI players are auto-deleted when human leaves
 
 ## Character Skill Implementation Pattern
 - Character stats defined in `CHARACTERS` object in `server/characters.js`
