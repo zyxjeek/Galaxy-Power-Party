@@ -158,6 +158,16 @@ const CHARACTERS = {
     attackLevel: 4,
     defenseLevel: 2,
     skillText: '攻击时，若选定的骰子有3个相同点数，攻击值+7；每多一个相同点数攻击值再+7',
+  },
+  automaton: {
+    id: 'automaton',
+    name: '自动机兵·甲虫',
+    hp: 10,
+    diceSides: [6, 4, 4, 4],
+    auroraUses: 0,
+    attackLevel: 3,
+    defenseLevel: 3,
+    skillText: '防御时获得一次重投机会，若选定的骰子包含3个连续点数则本回合获得力场，且下回合攻击值+8',
   }, */
 };
 
