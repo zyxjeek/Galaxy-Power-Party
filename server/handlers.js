@@ -481,8 +481,8 @@ function handleConfirmAttack(ws, msg) {
   game.attackPreviewSelection = indices.slice();
   game.attackValue = sumByIndices(game.attackDice, indices);
 
-  // Fengjin power bonus
-  if (attacker.characterId === 'fengjin' && game.power[attacker.id] > 0) {
+  // Fengjin/Trashcan power bonus
+  if ((attacker.characterId === 'fengjin' || attacker.characterId === 'trashcan') && game.power[attacker.id] > 0) {
     game.attackValue += game.power[attacker.id];
     game.log.push(`${attacker.name}触发【力量】加成+${game.power[attacker.id]}，攻击值${game.attackValue}。`);
   }
@@ -882,6 +882,18 @@ function handleConfirmDefense(ws, msg) {
     if (game.poison[attacker.id] > 0) {
       game.poison[attacker.id] -= 1;
       game.log.push(`${defender.name}防御受伤，移除${attacker.name}1层中毒（剩余${game.poison[attacker.id]}层）。`);
+    }
+  }
+
+  // Trashcan power accumulation
+  if (attacker.characterId === 'trashcan') {
+    const atkSelectedDice = game.attackSelection.map((idx) => game.attackDice[idx]);
+    if (areAllValuesEven(atkSelectedDice)) {
+      game.power[attacker.id] += 4;
+      game.log.push(`${attacker.name}全偶数触发，力量累积+4（当前${game.power[attacker.id]}层）。`);
+    } else {
+      game.power[attacker.id] += 2;
+      game.log.push(`${attacker.name}力量累积+2（当前${game.power[attacker.id]}层）。`);
     }
   }
 
