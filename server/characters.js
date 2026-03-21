@@ -139,6 +139,36 @@ const CHARACTERS = {
     defenseLevel: 2,
     skillText: '攻击时力量层数加成攻击值；攻击后累积攻击值50%为力量（全6则100%+治疗6）',
   },
+  trashcan: {
+    id: 'trashcan',
+    name: '垃圾桶',
+    hp: 25,
+    diceSides: [6, 6, 4, 4, 4],
+    auroraUses: 0,
+    attackLevel: 3,
+    defenseLevel: 2,
+    skillText: '攻击后获得2层力量，若选择的骰子均为偶数则改为获得4层力量',
+  },
+  /* ruanmei: {
+    id: 'ruanmei',
+    name: '阮·梅造物',
+    hp: 25,
+    diceSides: [4, 4, 4, 4, 4],
+    auroraUses: 0,
+    attackLevel: 4,
+    defenseLevel: 2,
+    skillText: '攻击时，若选定的骰子有3个相同点数，攻击值+7；每多一个相同点数攻击值再+7',
+  },
+  automaton: {
+    id: 'automaton',
+    name: '自动机兵·甲虫',
+    hp: 10,
+    diceSides: [6, 4, 4, 4],
+    auroraUses: 0,
+    attackLevel: 3,
+    defenseLevel: 3,
+    skillText: '防御时获得一次重投机会，若选定的骰子包含3个连续点数则本回合获得力场，且下回合攻击值+8',
+  }, */
 };
 
 const AURORA_DICE = {
