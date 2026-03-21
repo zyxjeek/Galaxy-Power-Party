@@ -12,6 +12,7 @@ const {
   areAllSame,
   hasDuplicates,
   countPairs,
+  areAllEven,
   areAllValuesSix,
   countOddValues,
 } = require('./dice');
@@ -888,7 +889,7 @@ function handleConfirmDefense(ws, msg) {
   // Trashcan power accumulation
   if (attacker.characterId === 'trashcan') {
     const atkSelectedDice = game.attackSelection.map((idx) => game.attackDice[idx]);
-    if (areAllValuesEven(atkSelectedDice)) {
+    if (areAllEven(atkSelectedDice)) {
       game.power[attacker.id] += 4;
       game.log.push(`${attacker.name}全偶数触发，力量累积+4（当前${game.power[attacker.id]}层）。`);
     } else {
